@@ -8,3 +8,4 @@ __pycache__/
 test-results/
 test-artifacts/
 *.tsbuildinfo
+*.tsbuildinfo
