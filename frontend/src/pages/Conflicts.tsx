@@ -18,7 +18,7 @@ export default function Conflicts({
   projectId?: string
   embedded?: boolean
 }) {
-  const { conflicts, projects } = useApp()
+  const { conflicts, projects, demoMode } = useApp()
   const [status, setStatus] = useState('All')
   const [project, setProject] = useState(projectId || 'all')
   const [query, setQuery] = useState('')
@@ -48,8 +48,9 @@ export default function Conflicts({
         <div>
           <strong>The evidence is here. The judgment is yours.</strong>
           <p>
-            Sample conflicts highlight contradictory records. Review the original sources and record
-            a human resolution.
+            {demoMode
+              ? 'Sample conflicts highlight contradictory records. Review the original sources and record a human resolution.'
+              : 'Conflicts are detected across sources. Review both quotes and record a human resolution; NEXUM never picks a winner.'}
           </p>
         </div>
       </div>
@@ -88,8 +89,9 @@ export default function Conflicts({
         )}
       </div>
       <DemoNote>
-        Confidence scores are intentionally omitted: these are fictional examples, not measured AI
-        predictions.
+        {demoMode
+          ? 'Confidence scores are intentionally omitted: these are fictional examples, not measured AI predictions.'
+          : 'Confidence scores are intentionally omitted. Both sides are shown with their source and page; no automated resolution is applied.'}
       </DemoNote>
     </>
   )

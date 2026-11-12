@@ -17,7 +17,8 @@ import ProjectCard from '../components/ProjectCard'
 import StatCard from '../components/StatCard'
 import { Badge, DemoNote, PageHeader, SectionTitle } from '../components/UI'
 export default function Overview() {
-  const { projects, sources, decisions, conflicts, preferences, setNewProjectOpen } = useApp()
+  const { projects, sources, decisions, conflicts, preferences, setNewProjectOpen, demoMode, actions } =
+    useApp()
   const open = conflicts.filter((item) => item.status !== 'Resolved').length
   const review = decisions.filter((item) => item.status === 'Under Review').length
   return (
@@ -43,7 +44,7 @@ export default function Overview() {
         <span>
           <span className="status-dot" />A clearer picture. A smoother handover.
         </span>
-        <Badge>Sample data</Badge>
+        {demoMode ? <Badge>Demo data</Badge> : <Badge tone="green">Live workspace</Badge>}
       </div>
       <div className="stats-grid">
         <StatCard
@@ -111,18 +112,22 @@ export default function Overview() {
         <section className="panel health-panel">
           <div className="panel-heading">
             <SectionTitle title="Knowledge health" />
-            <Badge tone="green">Demo insights</Badge>
+            <Badge tone="green">{demoMode ? 'Demo insights' : 'Live counts'}</Badge>
           </div>
           <div className="coverage-heading">
             <span>Document coverage</span>
-            <strong>
+            <strong>{demoMode ? <>
               78<span>%</span>
-            </strong>
+            </> : '—'}</strong>
           </div>
           <div className="coverage-track">
-            <span style={{ width: '78%' }} />
+            <span style={{ width: demoMode ? '78%' : '0%' }} />
           </div>
-          <p className="coverage-description">A strong foundation. A few gaps to close.</p>
+          <p className="coverage-description">
+            {demoMode
+              ? 'A strong foundation. A few gaps to close.'
+              : 'Coverage scoring is not measured yet. The counts below are live.'}
+          </p>
           <div className="health-metrics">
             <Link to="/conflicts">
               <span>
@@ -134,13 +139,20 @@ export default function Overview() {
                 <ArrowUpRight size={13} />
               </span>
             </Link>
-            <Link to="/projects/shopsphere/context">
+            <Link
+              to={
+                projects.length
+                  ? `/projects/${preferences.defaultProjectId || projects[0].id}/context`
+                  : '/projects'
+              }
+            >
               <span>
                 <CircleCheck size={15} />
-                Unassigned tasks
+                Pending tasks
               </span>
               <span className="health-count">
-                2<ArrowUpRight size={13} />
+                {demoMode ? 2 : actions.length}
+                <ArrowUpRight size={13} />
               </span>
             </Link>
             <Link to="/decisions?status=Under+Review">
@@ -156,12 +168,18 @@ export default function Overview() {
           </div>
           <div className="health-footnote">
             <BookOpen size={13} />
-            Coverage and task counts are illustrative.
+            {demoMode
+              ? 'Coverage and task counts are illustrative.'
+              : 'Task counts come from verified extracted claims.'}
           </div>
         </section>
       </div>
       <div className="overview-footer">
-        <DemoNote />
+        <DemoNote>
+          {demoMode
+            ? 'Demo workspace. All insights are sample data; changes stay in this session.'
+            : 'Claims are extracted only from your uploaded sources and verified against exact quotes.'}
+        </DemoNote>
         <span>
           NEXUM<span className="middle-dot">·</span>Built for what comes next.
         </span>

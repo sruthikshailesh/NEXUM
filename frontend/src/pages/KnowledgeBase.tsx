@@ -12,7 +12,6 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { useApp } from '../context/AppContext'
-import { sourceTypes } from '../data/mockData'
 import {
   Badge,
   DemoNote,
@@ -29,12 +28,25 @@ import type { SourceType } from '../types'
 const sourceIcons = {
   PDF: FileText,
   TXT: FileText,
+  Markdown: FileText,
+  DOCX: FileText,
   JSON: Braces,
   'Meeting notes': MessageSquareText,
   GitHub: Github,
   'Pull request': GitPullRequest,
   'Task record': ListTodo,
 }
+const sourceTypes: SourceType[] = [
+  'PDF',
+  'TXT',
+  'Markdown',
+  'DOCX',
+  'JSON',
+  'Meeting notes',
+  'GitHub',
+  'Pull request',
+  'Task record',
+]
 export function SourceTypeIcon({ type }: { type: SourceType }) {
   const Icon = sourceIcons[type]
   return (
@@ -50,7 +62,7 @@ export default function KnowledgeBase({
   projectId?: string
   embedded?: boolean
 }) {
-  const { sources, projects, setSelectedSource } = useApp()
+  const { sources, projects, setSelectedSource, demoMode } = useApp()
   const [query, setQuery] = useState('')
   const [type, setType] = useState('All sources')
   const [project, setProject] = useState(projectId || 'all')
@@ -168,8 +180,9 @@ export default function KnowledgeBase({
         )}
       </div>
       <DemoNote>
-        “Demo indexed” is a sample status, not live processing. GitHub, pull requests, and tasks are
-        illustrative records, not connected integrations.
+        {demoMode
+          ? '“Demo indexed” is a sample status, not live processing. GitHub, pull requests, and tasks are illustrative records, not connected integrations.'
+          : '“Indexed” means the backend extracted text and stored page-aware chunks. GitHub, pull requests, and tasks are not connected integrations yet.'}
       </DemoNote>
       {uploading && <UploadModal projectId={projectId} onClose={() => setUploading(false)} />}
     </>

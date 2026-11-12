@@ -8,12 +8,17 @@ async function assertNoOverflow(page: Page) {
     true,
   )
 }
+// The workspace now starts empty (real backend) and demo data is explicit.
+async function loadDemo(page: Page) {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Load demo data' }).first().click()
+  await expect(page.getByRole('heading', { name: 'Welcome back, Alex' })).toBeVisible()
+}
 
 test('dashboard, all navigation, and collapsed sidebar work', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
-  await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Welcome back, Alex' })).toBeVisible()
+  await loadDemo(page)
   await expect(page.locator('.stat-card')).toHaveCount(4)
   await expect(page.locator('.project-card')).toHaveCount(3)
   for (const [nav, heading] of [
@@ -45,7 +50,7 @@ test('dashboard, all navigation, and collapsed sidebar work', async ({ page }) =
 test('project creation validates duplicates and supports a new empty workspace', async ({
   page,
 }) => {
-  await page.goto('/')
+  await loadDemo(page)
   await page.getByRole('button', { name: 'New Project', exact: true }).click()
   const dialog = page.getByRole('dialog')
   await dialog.getByLabel('Project name').fill('ShopSphere')
@@ -85,6 +90,7 @@ test('project creation validates duplicates and supports a new empty workspace',
 test('source uploads remain local, support previews, reject unsupported files, and filter', async ({
   page,
 }) => {
+  await loadDemo(page)
   await page.goto('/knowledge')
   await page.getByRole('button', { name: 'Add sources', exact: true }).click()
   const dialog = page.getByRole('dialog')
@@ -120,6 +126,7 @@ test('source uploads remain local, support previews, reject unsupported files, a
 })
 
 test('decision filters, history, and linked evidence work', async ({ page }) => {
+  await loadDemo(page)
   await page.goto('/decisions')
   await page.getByRole('button', { name: 'Accepted', exact: true }).click()
   await expect(page.locator('.decision-card')).toHaveCount(2)
@@ -136,6 +143,7 @@ test('decision filters, history, and linked evidence work', async ({ page }) => 
 })
 
 test('conflicts require a human rationale and update dashboard counts', async ({ page }) => {
+  await loadDemo(page)
   await page.goto('/conflicts')
   const conflict = page
     .locator('.conflict-card')
@@ -167,6 +175,7 @@ test('conflicts require a human rationale and update dashboard counts', async ({
 })
 
 test('handover preview, table of contents, review, and export work', async ({ page }) => {
+  await loadDemo(page)
   await page.goto('/handovers')
   await page.getByRole('button', { name: 'Generate Handover' }).click()
   await page.getByRole('combobox', { name: 'Handover project' }).selectOption('shopsphere')
@@ -191,6 +200,7 @@ test('handover preview, table of contents, review, and export work', async ({ pa
 })
 
 test('workspace tabs, project-scoped records, and local task checklist work', async ({ page }) => {
+  await loadDemo(page)
   await page.goto('/projects/shopsphere')
   const tabs = page.getByRole('navigation', { name: 'Project navigation' })
   await page.locator('.task-item').first().click()
@@ -210,7 +220,26 @@ test('workspace tabs, project-scoped records, and local task checklist work', as
   await expect(page.locator('.workspace-stat')).toHaveCount(4)
 })
 
+test('exit demo mode returns to the live backend view and live copy', async ({ page }) => {
+  await loadDemo(page)
+  await page.getByRole('button', { name: 'Exit demo mode' }).first().click()
+  await expect(page.getByText('Live workspace').first()).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Welcome back, Alex' })).toBeVisible()
+
+  await navigate(page, 'Projects')
+  await expect(
+    page.getByText('Projects are stored by the NEXUM backend', { exact: false }),
+  ).toBeVisible()
+
+  await page.goto('/projects/missing-project')
+  await expect(page.getByRole('heading', { name: 'Project not found' })).toBeVisible()
+  await expect(
+    page.getByText('This project does not exist in the backend', { exact: false }),
+  ).toBeVisible()
+})
+
 test('settings, keyboard search, FAQs, and unknown routes work', async ({ page }) => {
+  await loadDemo(page)
   await page.goto('/settings')
   await page.getByRole('textbox', { name: 'Display name' }).fill('Taylor Lee')
   await page.getByRole('button', { name: 'Save profile' }).click()
@@ -244,6 +273,7 @@ test('settings, keyboard search, FAQs, and unknown routes work', async ({ page }
 for (const width of [1440, 1024, 768, 390]) {
   test(`responsive routes have no horizontal overflow at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 1000 })
+    await loadDemo(page)
     for (const route of [
       '/',
       '/projects',

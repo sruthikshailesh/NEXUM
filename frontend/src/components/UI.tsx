@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   ArrowRight,
   ArrowUpRight,
   Check,
@@ -7,6 +8,7 @@ import {
   Folder,
   HeartPulse,
   Layers3,
+  LoaderCircle,
   Search,
   ShoppingBag,
   Terminal,
@@ -34,9 +36,18 @@ export function Badge({
   )
 }
 export function statusTone(status: string) {
-  if (['Up to date', 'Accepted', 'Resolved', 'Reviewed', 'Demo indexed'].includes(status))
+  if (
+    ['Up to date', 'Accepted', 'Resolved', 'Reviewed', 'Demo indexed', 'Indexed', 'Generated'].includes(
+      status,
+    )
+  )
     return 'green'
-  if (['Needs review', 'Under Review', 'Unresolved', 'Proposed'].includes(status)) return 'amber'
+  if (
+    ['Needs review', 'Under Review', 'Unresolved', 'Proposed', 'Processing', 'Failed'].includes(
+      status,
+    )
+  )
+    return 'amber'
   if (['New project', 'Sample preview', 'Local only'].includes(status)) return 'violet'
   return 'neutral'
 }
@@ -331,6 +342,34 @@ export function formatDate(date: string) {
 }
 export function shortDate(date: string) {
   return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+export function LoadingState({ label = 'Loading your workspace…' }: { label?: string }) {
+  return (
+    <div className="loading-state panel" role="status" aria-live="polite">
+      <LoaderCircle size={22} className="spin" />
+      <p>{label}</p>
+    </div>
+  )
+}
+export function ErrorState({
+  title = 'Something interrupted this view',
+  description,
+  action,
+}: {
+  title?: string
+  description?: string
+  action?: ReactNode
+}) {
+  return (
+    <div className="empty-state" role="alert">
+      <span className="empty-icon">
+        <AlertTriangle size={24} strokeWidth={1.5} />
+      </span>
+      <h3>{title}</h3>
+      {description && <p>{description}</p>}
+      {action}
+    </div>
+  )
 }
 export function CheckRow({
   children,

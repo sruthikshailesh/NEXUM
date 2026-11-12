@@ -4030,3 +4030,62 @@ strong {
     font-size: 13px;
   }
 }
+
+/* Backend state + loading (added for the real API integration) */
+.backend-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--amber);
+  border-radius: 10px;
+  background: rgba(200, 170, 120, 0.08);
+  color: var(--text);
+}
+.backend-banner > svg {
+  color: var(--amber);
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.backend-banner strong {
+  display: block;
+  font-size: 13px;
+}
+.backend-banner p {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.backend-banner-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 180px;
+  color: var(--muted);
+}
+.loading-state svg {
+  color: var(--violet);
+}
+@media (max-width: 720px) {
+  .backend-banner {
+    flex-wrap: wrap;
+  }
+  .backend-banner-actions {
+    margin-left: 31px;
+    width: 100%;
+  }
+}
+.workspace-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}

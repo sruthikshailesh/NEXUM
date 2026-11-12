@@ -14,13 +14,13 @@ import { useNavigate } from 'react-router-dom'
 import { useApp } from '../context/AppContext'
 import { Badge, EmptyState, formatDate, Modal, SearchInput, statusTone } from './UI'
 function NewProjectModal() {
-  const { projects, createProject, setNewProjectOpen } = useApp()
+  const { projects, createProject, setNewProjectOpen, demoMode } = useApp()
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [stack, setStack] = useState('')
   const [error, setError] = useState('')
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault()
     if (!name.trim() || !description.trim()) {
       setError('Add a project name and a short description.')
@@ -30,20 +30,24 @@ function NewProjectModal() {
       setError('A project with this name already exists. Choose another name.')
       return
     }
-    const project = createProject({
-      name: name.trim(),
-      description: description.trim(),
-      stack: [
-        ...new Set(
-          stack
-            .split(',')
-            .map((item) => item.trim())
-            .filter(Boolean),
-        ),
-      ],
-    })
-    setNewProjectOpen(false)
-    navigate(`/projects/${project.id}`)
+    try {
+      const project = await createProject({
+        name: name.trim(),
+        description: description.trim(),
+        stack: [
+          ...new Set(
+            stack
+              .split(',')
+              .map((item) => item.trim())
+              .filter(Boolean),
+          ),
+        ],
+      })
+      setNewProjectOpen(false)
+      navigate(`/projects/${project.id}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'The project could not be created.')
+    }
   }
   return (
     <Modal
@@ -96,8 +100,9 @@ function NewProjectModal() {
         <div className="info-box">
           <Info size={16} />
           <p>
-            This project will live in your current browser session. No account or backend is
-            connected.
+            {demoMode
+              ? 'This project will live in the demo session. No account or backend is connected.'
+              : 'This project is saved to the NEXUM backend and will still be here next time.'}
           </p>
         </div>
         <div className="modal-actions">

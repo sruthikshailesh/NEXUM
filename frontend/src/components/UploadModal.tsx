@@ -3,6 +3,10 @@ import { useRef, useState } from 'react'
 import { useApp } from '../context/AppContext'
 import type { Source, SourceType } from '../types'
 import { Modal, Select } from './UI'
+
+const MAX_BYTES = 10 * 1024 * 1024
+const ACCEPTED = /\.(pdf|txt|md|docx)$/i
+
 export default function UploadModal({
   projectId,
   onClose,
@@ -10,24 +14,23 @@ export default function UploadModal({
   projectId?: string
   onClose: () => void
 }) {
-  const { projects, preferences, addSources } = useApp()
+  const { projects, preferences, addSources, uploadSources, demoMode } = useApp()
   const [selectedProject, setSelectedProject] = useState(
     projectId || preferences.defaultProjectId || projects[0]?.id || '',
   )
   const [files, setFiles] = useState<File[]>([])
   const [error, setError] = useState('')
   const [dragging, setDragging] = useState(false)
-  const [reading, setReading] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
   function selectFiles(incoming: FileList | File[] | null) {
     if (!incoming) return
     const all = [...incoming]
-    const valid = all.filter(
-      (file) => /\.(pdf|txt|json|md)$/i.test(file.name) && file.size <= 5 * 1024 * 1024,
-    )
+    const valid = all.filter((file) => ACCEPTED.test(file.name) && file.size <= MAX_BYTES)
     setError(
       valid.length < all.length
-        ? 'Some files were not added. Use PDF, TXT, JSON, or Markdown files up to 5 MB each.'
+        ? 'Some files were not added. Use PDF, DOCX, TXT or Markdown files up to 10 MB each.'
         : '',
     )
     setFiles((current) =>
@@ -41,49 +44,73 @@ export default function UploadModal({
     if (files.length + valid.length > 10)
       setError('Add up to 10 files at a time. Only the first 10 were selected.')
   }
+
   async function submit() {
     if (!selectedProject || !files.length) {
       setError('Choose a project and at least one file.')
       return
     }
-    setReading(true)
+    setUploading(true)
+    setError('')
     try {
-      const additions: Source[] = await Promise.all(
-        files.map(async (file) => {
-          const ext = file.name.split('.').pop()?.toLowerCase()
-          const type: SourceType =
-            ext === 'pdf' ? 'PDF' : ext === 'json' ? 'JSON' : ext === 'md' ? 'Meeting notes' : 'TXT'
-          const content =
-            ext === 'pdf'
-              ? 'PDF content extraction is not available in Phase 1. Only this file’s name, size, and project association are retained in this session. Nothing was uploaded or processed.'
-              : (await file.text()).slice(0, 60000)
-          return {
-            id: crypto.randomUUID(),
-            name: file.name,
-            projectId: selectedProject,
-            type,
-            date: new Date().toISOString(),
-            status: 'Local only',
-            summary:
-              'Added locally by you. No automated summary or AI analysis has been performed.',
-            content: content || 'This file is empty.',
-            size: `${(file.size / 1024).toFixed(1)} KB`,
-          }
-        }),
-      )
-      addSources(additions)
+      if (demoMode) {
+        // Explicit demo path: files stay in memory and are labelled Local only.
+        const additions: Source[] = await Promise.all(
+          files.map(async (file) => {
+            const ext = file.name.split('.').pop()?.toLowerCase()
+            const type: SourceType =
+              ext === 'pdf'
+                ? 'PDF'
+                : ext === 'docx'
+                  ? 'DOCX'
+                  : ext === 'md'
+                    ? 'Markdown'
+                    : 'TXT'
+            const content =
+              ext === 'pdf'
+                ? 'PDF content extraction is not available in demo mode. Only this file’s name, size, and project association are retained in this session.'
+                : ext === 'docx'
+                  ? 'DOCX preview is not available in demo mode. Only this file’s name, size, and project association are retained in this session.'
+                  : (await file.text()).slice(0, 60000)
+            return {
+              id: crypto.randomUUID(),
+              name: file.name,
+              projectId: selectedProject,
+              type,
+              date: new Date().toISOString(),
+              status: 'Local only' as const,
+              summary: 'Added to the demo workspace. No automated summary or AI analysis was performed.',
+              content: content || 'This file is empty.',
+              size: `${(file.size / 1024).toFixed(1)} KB`,
+            }
+          }),
+        )
+        addSources(additions)
+        onClose()
+        return
+      }
+
+      const result = await uploadSources(selectedProject, files)
+      if (result.failed.length) {
+        setError(result.failed.map((item) => `${item.filename}: ${item.message}`).join(' '))
+        if (!result.added) return
+        setFiles([])
+        return
+      }
       onClose()
-    } catch {
-      setError('This file could not be read. Please choose it again and retry.')
-      setReading(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'The upload failed. Please try again.')
+    } finally {
+      setUploading(false)
     }
   }
+
   return (
     <Modal
       title="Add sources"
       description="Bring the context into your workspace."
       onClose={() => {
-        if (!reading) onClose()
+        if (!uploading) onClose()
       }}
     >
       <div className="modal-form">
@@ -101,7 +128,7 @@ export default function UploadModal({
           type="file"
           ref={inputRef}
           className="sr-only"
-          accept=".pdf,.txt,.json,.md"
+          accept=".pdf,.txt,.md,.docx"
           multiple
           onChange={(event) => {
             selectFiles(event.target.files)
@@ -133,7 +160,7 @@ export default function UploadModal({
             </button>{' '}
             to get started
           </p>
-          <small>PDF, TXT, JSON, MD · Up to 5 MB each · 10 files</small>
+          <small>PDF, DOCX, TXT, MD · Up to 10 MB each · 10 files</small>
         </div>
         {files.length > 0 && (
           <div className="selected-files">
@@ -164,23 +191,28 @@ export default function UploadModal({
         <div className="info-box">
           <AlertCircle size={16} />
           <p>
-            Frontend demo only. Files stay in memory for this session. No server upload, indexing,
-            or AI processing occurs. Text previews are limited to 60,000 characters.
+            {demoMode
+              ? 'Demo mode. Files stay in memory for this session; no upload or AI processing occurs.'
+              : 'Files are uploaded to your NEXUM backend, text is extracted with page numbers, and only then can analysis run. Nothing is sent to the AI until you press Analyze sources.'}
           </p>
         </div>
         <div className="modal-actions">
-          <button className="button button-secondary" disabled={reading} onClick={onClose}>
+          <button className="button button-secondary" disabled={uploading} onClick={onClose}>
             Cancel
           </button>
           <button
             className="button button-primary"
-            disabled={!files.length || reading}
-            onClick={submit}
+            disabled={!files.length || uploading || !selectedProject}
+            onClick={() => void submit()}
           >
-            {reading ? <LoaderCircle size={16} className="spin" /> : <UploadCloud size={16} />}
-            {reading
-              ? 'Reading local files…'
-              : `Add ${files.length || ''} ${files.length === 1 ? 'source' : 'sources'}`}
+            {uploading ? <LoaderCircle size={16} className="spin" /> : <UploadCloud size={16} />}
+            {uploading
+              ? demoMode
+                ? 'Reading local files…'
+                : 'Uploading and extracting…'
+              : `${demoMode ? 'Add' : 'Upload'} ${files.length || ''} ${
+                  files.length === 1 ? 'source' : 'sources'
+                }`}
           </button>
         </div>
       </div>
