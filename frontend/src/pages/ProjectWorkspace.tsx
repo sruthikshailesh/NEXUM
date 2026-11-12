@@ -1,4 +1,5 @@
 import {
+  AlertCircle,
   ArrowLeft,
   ArrowRight,
   BookOpen,
@@ -9,8 +10,10 @@ import {
   GitBranch,
   HelpCircle,
   Layers3,
+  LoaderCircle,
   Plus,
   ShieldAlert,
+  Sparkles,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, NavLink, useParams } from 'react-router-dom'
@@ -65,7 +68,19 @@ const sampleQuestions: Record<string, string[]> = {
 }
 export default function ProjectWorkspace() {
   const { projectId = '', tab = 'overview' } = useParams()
-  const { projects, sources, decisions, conflicts, setSelectedSource } = useApp()
+  const {
+    projects,
+    sources,
+    decisions,
+    conflicts,
+    setSelectedSource,
+    demoMode,
+    actions,
+    questions: extractedQuestions,
+    analyzeProject,
+    analyzing,
+    analysisError,
+  } = useApp()
   const project = projects.find((item) => item.id === projectId)
   const [uploading, setUploading] = useState(false)
   const [completedTasks, setCompletedTasks] = useState<string[]>([])
@@ -73,7 +88,11 @@ export default function ProjectWorkspace() {
     return (
       <EmptyState
         title="Project not found"
-        description="This project may have belonged to an earlier session. Projects are not yet saved to a backend."
+        description={
+          demoMode
+            ? 'This project may have belonged to an earlier demo session. Load demo data again to explore, or exit demo mode to use the live workspace.'
+            : 'This project does not exist in the backend. It may have been deleted, or the link may be out of date.'
+        }
         action={
           <Link className="button button-primary" to="/projects">
             <ArrowLeft size={16} />
@@ -87,8 +106,14 @@ export default function ProjectWorkspace() {
   const projectConflicts = conflicts.filter(
     (item) => item.projectId === project.id && item.status !== 'Resolved',
   )
-  const tasks = sampleTasks[project.id] || []
-  const questions = sampleQuestions[project.id] || []
+  const tasks = demoMode
+    ? sampleTasks[project.id] || []
+    : actions
+        .filter((item) => item.projectId === project.id)
+        .map((item) => ({ title: item.title, owner: item.owner }))
+  const questions = demoMode
+    ? sampleQuestions[project.id] || []
+    : extractedQuestions.filter((item) => item.projectId === project.id).map((item) => item.title)
   const base = `/projects/${project.id}`
   const taskPanel = (
     <section className="panel workspace-task-panel">
@@ -98,7 +123,11 @@ export default function ProjectWorkspace() {
           tasks.filter((task) => !completedTasks.includes(`${project.id}-${task.title}`)).length
         }
       />
-      <p className="panel-description">Illustrative checklist · changes stay in this session</p>
+      <p className="panel-description">
+        {demoMode
+          ? 'Illustrative checklist · changes stay in this session'
+          : 'Extracted pending work · checked against source quotes'}
+      </p>
       {tasks.length ? (
         tasks.map((task) => {
           const key = `${project.id}-${task.title}`
@@ -166,11 +195,41 @@ export default function ProjectWorkspace() {
           </div>
           <p>{project.description}</p>
         </div>
-        <button className="button button-primary" onClick={() => setUploading(true)}>
-          <Plus size={16} />
-          Add sources
-        </button>
+        <div className="workspace-actions">
+          <button
+            className="button button-secondary"
+            disabled={demoMode || analyzing || !projectSources.length}
+            title={
+              demoMode
+                ? 'Load your own sources to run the AI pipeline.'
+                : 'Analyze every uploaded source with evidence checking.'
+            }
+            onClick={() =>
+              void analyzeProject(
+                project.id,
+                projectSources.map((source) => source.id),
+              ).catch(() => undefined)
+            }
+          >
+            {analyzing ? (
+              <LoaderCircle size={16} className="spin" />
+            ) : (
+              <Sparkles size={16} />
+            )}
+            {analyzing ? 'Analyzing…' : 'Analyze sources'}
+          </button>
+          <button className="button button-primary" onClick={() => setUploading(true)}>
+            <Plus size={16} />
+            Add sources
+          </button>
+        </div>
       </div>
+      {analysisError && !analyzing && (
+        <div className="form-error" role="alert">
+          <AlertCircle size={16} />
+          {analysisError}
+        </div>
+      )}
       <div className="workspace-meta">
         <div className="stack-tags">
           {project.stack.map((tech) => (
@@ -280,7 +339,11 @@ export default function ProjectWorkspace() {
               </span>
               <div>
                 <h3>Make the next handover a head start.</h3>
-                <p>Bring decisions, open work, and evidence into one sample report.</p>
+                <p>
+                  {demoMode
+                    ? 'Bring decisions, open work, and evidence into one sample report.'
+                    : 'Bring decisions, open work, and verified evidence into one report.'}
+                </p>
               </div>
               <span className="text-link">
                 Explore handovers
@@ -288,8 +351,9 @@ export default function ProjectWorkspace() {
               </span>
             </Link>
             <DemoNote>
-              Project insights, tasks, and questions are curated examples—not extracted from your
-              files.
+              {demoMode
+                ? 'Project insights, tasks, and questions are curated examples—not extracted from your files.'
+                : 'Tasks and questions are extracted from your sources, and every claim points to a verified quote.'}
             </DemoNote>
           </>
         )}
@@ -303,11 +367,15 @@ export default function ProjectWorkspace() {
               <span className="context-icon">
                 <BookOpen size={24} strokeWidth={1.5} />
               </span>
-              <div>
-                <h2>The bigger picture</h2>
-                <p>A curated starting point for understanding {project.name}.</p>
-              </div>
-              <Badge tone="violet">Sample context</Badge>
+                              <div>
+                  <h2>The bigger picture</h2>
+                  <p>
+                    {demoMode
+                      ? `A curated starting point for understanding ${project.name}.`
+                      : `Evidence-backed context for ${project.name}.`}
+                  </p>
+                </div>
+                <Badge tone="violet">{demoMode ? 'Sample context' : 'Extracted context'}</Badge>
             </div>
             <div className="context-grid">
               <section className="panel context-summary">
@@ -342,8 +410,9 @@ export default function ProjectWorkspace() {
               </div>
             </div>
             <DemoNote>
-              Context is curated demo content. Automated extraction and entity relationships are
-              planned for a future backend.
+              {demoMode
+                ? 'Context is curated demo content. No automated extraction ran for it.'
+                : 'Context comes from uploaded sources. Run Analyze sources to extract decisions, risks, tasks and questions.'}
             </DemoNote>
           </>
         )}

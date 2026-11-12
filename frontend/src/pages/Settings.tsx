@@ -1,11 +1,31 @@
-import { Check, FolderOpen, Info, Moon, Save, Settings2, UserRound } from 'lucide-react'
+import {
+  Check,
+  Database,
+  FolderOpen,
+  Info,
+  Moon,
+  RefreshCw,
+  Save,
+  Settings2,
+  UserRound,
+} from 'lucide-react'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { PageHeader } from '../components/UI'
 import { useApp } from '../context/AppContext'
 
 export default function Settings() {
-  const { preferences, setPreferences, projects, notify } = useApp()
+  const {
+    preferences,
+    setPreferences,
+    projects,
+    notify,
+    demoMode,
+    loadDemoData,
+    exitDemo,
+    reload,
+    offline,
+  } = useApp()
   const [name, setName] = useState(preferences.name)
   const [role, setRole] = useState(preferences.role)
   const [error, setError] = useState('')
@@ -37,8 +57,9 @@ export default function Settings() {
       <div className="info-box">
         <Info size={18} aria-hidden="true" />
         <p>
-          Session only. Preferences and workspace changes live in memory, are not persisted, and
-          reset when you reload or close this page.
+          {demoMode
+            ? 'Demo mode. Demo records and display preferences live in memory and reset when you reload or close this page.'
+            : 'Projects, sources, claims and reports are stored by the NEXUM backend. Display preferences stay in this browser session.'}
         </p>
       </div>
       <div className="settings-layout">
@@ -247,6 +268,64 @@ export default function Settings() {
           </section>
 
           <section
+            className="panel settings-section"
+            id="data-source"
+            aria-labelledby="data-source-title"
+          >
+            <div className="settings-section-title">
+              <Database size={20} aria-hidden="true" />
+              <div>
+                <h2 id="data-source-title">Data source</h2>
+                <p className="muted">Real analysis or fictional demo records — never mixed.</p>
+              </div>
+            </div>
+            <p>
+              {demoMode
+                ? 'Demo data is loaded. It is clearly labelled and is not AI output.'
+                : offline
+                  ? 'The backend is currently unreachable. You can retry, or load the fictional demo workspace.'
+                  : 'Connected to the NEXUM backend. Uploads and AI claims are stored in your local database.'}
+            </p>
+            <div className="settings-row">
+              <div className="settings-row-copy">
+                <h3>Demo workspace</h3>
+                <p className="muted">
+                  Load the fictional ShopSphere examples for exploring the interface.
+                </p>
+              </div>
+              <div className="workspace-actions">
+                {demoMode ? (
+                  <button
+                    type="button"
+                    className="button button-secondary button-sm"
+                    onClick={exitDemo}
+                  >
+                    Exit demo mode
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="button button-secondary button-sm"
+                      onClick={loadDemoData}
+                    >
+                      Load demo data
+                    </button>
+                    <button
+                      type="button"
+                      className="button button-secondary button-sm"
+                      onClick={() => void reload()}
+                    >
+                      <RefreshCw size={14} aria-hidden="true" />
+                      Retry connection
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <section
             className="panel settings-section settings-about"
             id="about-nexum"
             aria-labelledby="about-title"
@@ -259,18 +338,18 @@ export default function Settings() {
               </div>
             </div>
             <div className="stack-tags">
-              <span>Phase 1</span>
-              <span>Frontend demo</span>
-              <span>Session only</span>
+              <span>MVP</span>
+              <span>{demoMode ? 'Demo mode' : 'FastAPI backend'}</span>
+              <span>{demoMode ? 'Session only' : 'SQLite storage'}</span>
             </div>
             <p>
-              NEXUM brings sample sources, technical decisions, conflicting evidence, and
-              nine-section handovers into one workspace for human review.
+              NEXUM connects sources, technical decisions, conflicting evidence, and nine-section
+              handovers in one workspace for human review.
             </p>
             <p className="muted">
-              This is a frontend-only prototype. No AI, backend, database, authentication, or live
-              integrations are connected. Reports use local sample data, not AI analysis. Files are
-              not uploaded to a server.
+              {demoMode
+                ? 'Demo records are fictional and loaded explicitly. They are not AI output and are never uploaded or analyzed.'
+                : 'Extraction uses pypdf/python-docx, chunking keeps page numbers, and Groq analysis runs only on the backend. Every citation is checked against stored text before it is shown.'}
             </p>
             <Link className="text-link" to="/help">
               Explore the getting started guide

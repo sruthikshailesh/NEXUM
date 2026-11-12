@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext'
 import type { Conflict } from '../types'
 import { Badge, formatDate, Modal, statusTone } from './UI'
 export default function ConflictCard({ conflict }: { conflict: Conflict }) {
-  const { projects, sources, setSelectedSource, updateConflict } = useApp()
+  const { projects, sources, setSelectedSource, updateConflict, notify } = useApp()
   const [expanded, setExpanded] = useState(false)
   const [resolving, setResolving] = useState(false)
   const [resolution, setResolution] = useState('')
@@ -50,6 +50,8 @@ export default function ConflictCard({ conflict }: { conflict: Conflict }) {
                 <strong>{source?.name || 'Source unavailable'}</strong>
                 <span>
                   {evidence.author}
+                  {evidence.page ? <span className="middle-dot">·</span> : null}
+                  {evidence.page ? `p.${evidence.page}` : null}
                   <span className="middle-dot">·</span>
                   {formatDate(evidence.date)}
                 </span>
@@ -97,7 +99,11 @@ export default function ConflictCard({ conflict }: { conflict: Conflict }) {
               <button
                 className="button button-secondary button-sm"
                 disabled={conflict.status === 'Under Review'}
-                onClick={() => updateConflict(conflict.id, 'Under Review')}
+                onClick={() =>
+                  void updateConflict(conflict.id, 'Under Review').catch((error: unknown) =>
+                    notify(error instanceof Error ? error.message : 'Could not update the conflict.'),
+                  )
+                }
               >
                 <Check size={14} />
                 {conflict.status === 'Under Review' ? 'Reviewed' : 'Mark as Reviewed'}
@@ -131,8 +137,11 @@ export default function ConflictCard({ conflict }: { conflict: Conflict }) {
                 setError('Please add at least 15 characters explaining your decision.')
                 return
               }
-              updateConflict(conflict.id, 'Resolved', resolution.trim())
-              setResolving(false)
+              void updateConflict(conflict.id, 'Resolved', resolution.trim())
+                .then(() => setResolving(false))
+                .catch((err: unknown) =>
+                  setError(err instanceof Error ? err.message : 'Could not save the resolution.'),
+                )
             }}
           >
             <div className="info-box">

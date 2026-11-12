@@ -23,7 +23,7 @@ export default function Decisions({
   projectId?: string
   embedded?: boolean
 }) {
-  const { decisions, projects, sources, selectedSource, setSelectedSource } = useApp()
+  const { decisions, projects, sources, selectedSource, setSelectedSource, demoMode } = useApp()
   const [params, setParams] = useSearchParams()
   const [query, setQuery] = useState('')
   const [project, setProject] = useState(projectId || 'all')
@@ -97,7 +97,9 @@ export default function Decisions({
         />
       )}
       <DemoNote>
-        Decisions and their supporting evidence are curated demo records, not AI-extracted insights.
+        {demoMode
+          ? 'Decisions and their supporting evidence are curated demo records, not AI-extracted insights.'
+          : 'Decisions are AI-extracted claims. Each one is kept only when its quote was found in an uploaded source.'}
       </DemoNote>
       {selected && !selectedSource && (
         <Modal
@@ -174,7 +176,11 @@ export default function Decisions({
                 )
               })}
             </section>
-            <DemoNote>This record is sample data and has not been independently verified.</DemoNote>
+            <DemoNote>
+              {demoMode
+                ? 'This record is sample data and has not been independently verified.'
+                : 'Evidence quotes were verified against the stored source chunks. Confirm the decision with your team before relying on it.'}
+            </DemoNote>
           </div>
         </Modal>
       )}

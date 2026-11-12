@@ -1,11 +1,11 @@
 import { Component, useEffect, useState, type ErrorInfo, type ReactNode } from 'react'
-import { ArrowLeft, RefreshCw } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react'
 import { BrowserRouter, Link, Route, Routes, useLocation } from 'react-router-dom'
 import { AppProvider, useApp } from './context/AppContext'
 import Sidebar from './components/Sidebar'
 import Header from './components/Header'
 import AppOverlays from './components/AppOverlays'
-import { EmptyState } from './components/UI'
+import { EmptyState, LoadingState } from './components/UI'
 import Overview from './pages/Overview'
 import Projects from './pages/Projects'
 import ProjectWorkspace from './pages/ProjectWorkspace'
@@ -45,7 +45,19 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: boolean 
 function WorkspaceLayout() {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const { preferences, searchOpen, setSearchOpen, newProjectOpen, selectedSource } = useApp()
+  const {
+    preferences,
+    searchOpen,
+    setSearchOpen,
+    newProjectOpen,
+    selectedSource,
+    loading,
+    offline,
+    loadError,
+    demoMode,
+    loadDemoData,
+    reload,
+  } = useApp()
   const location = useLocation()
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -79,35 +91,60 @@ function WorkspaceLayout() {
       <div className="main-shell">
         <Header onMenu={() => setMobileOpen(true)} />
         <main className="main-content" id="main-content" tabIndex={-1}>
-          <ErrorBoundary>
-            <Routes>
-              <Route path="/" element={<Overview />} />
-              <Route path="/projects" element={<Projects />} />
-              <Route path="/projects/:projectId" element={<ProjectWorkspace />} />
-              <Route path="/projects/:projectId/:tab" element={<ProjectWorkspace />} />
-              <Route path="/knowledge" element={<KnowledgeBase />} />
-              <Route path="/decisions" element={<Decisions />} />
-              <Route path="/conflicts" element={<Conflicts />} />
-              <Route path="/handovers" element={<HandoverReports />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/help" element={<Help />} />
-              <Route
-                path="*"
-                element={
-                  <EmptyState
-                    title="A little off the map"
-                    description="This page doesn't exist. Your workspace is one click away."
-                    action={
-                      <Link className="button button-primary" to="/">
-                        <ArrowLeft size={16} />
-                        Back to overview
-                      </Link>
-                    }
-                  />
-                }
-              />
-            </Routes>
-          </ErrorBoundary>
+          {(offline || loadError) && !demoMode && (
+            <div className="backend-banner" role="status">
+              <AlertTriangle size={19} />
+              <div>
+                <strong>{offline ? 'Backend offline' : 'Workspace could not load'}</strong>
+                <p>
+                  {loadError ||
+                    'The NEXUM backend is unreachable. Start it locally or explore the demo data.'}
+                </p>
+              </div>
+              <div className="backend-banner-actions">
+                <button className="button button-secondary button-sm" onClick={() => void reload()}>
+                  <RefreshCw size={14} />
+                  Retry
+                </button>
+                <button className="button button-primary button-sm" onClick={loadDemoData}>
+                  Load demo data
+                </button>
+              </div>
+            </div>
+          )}
+          {loading ? (
+            <LoadingState />
+          ) : (
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/" element={<Overview />} />
+                <Route path="/projects" element={<Projects />} />
+                <Route path="/projects/:projectId" element={<ProjectWorkspace />} />
+                <Route path="/projects/:projectId/:tab" element={<ProjectWorkspace />} />
+                <Route path="/knowledge" element={<KnowledgeBase />} />
+                <Route path="/decisions" element={<Decisions />} />
+                <Route path="/conflicts" element={<Conflicts />} />
+                <Route path="/handovers" element={<HandoverReports />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="/help" element={<Help />} />
+                <Route
+                  path="*"
+                  element={
+                    <EmptyState
+                      title="A little off the map"
+                      description="This page doesn't exist. Your workspace is one click away."
+                      action={
+                        <Link className="button button-primary" to="/">
+                          <ArrowLeft size={16} />
+                          Back to overview
+                        </Link>
+                      }
+                    />
+                  }
+                />
+              </Routes>
+            </ErrorBoundary>
+          )}
         </main>
       </div>
       <AppOverlays />

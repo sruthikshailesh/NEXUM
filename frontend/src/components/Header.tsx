@@ -12,7 +12,7 @@ const labels: Record<string, string> = {
 }
 export default function Header({ onMenu }: { onMenu: () => void }) {
   const location = useLocation()
-  const { projects, setSearchOpen } = useApp()
+  const { projects, setSearchOpen, demoMode, offline, loadDemoData, exitDemo } = useApp()
   const parts = location.pathname.split('/').filter(Boolean)
   const project = parts[0] === 'projects' ? projects.find((item) => item.id === parts[1]) : null
   return (
@@ -48,8 +48,18 @@ export default function Header({ onMenu }: { onMenu: () => void }) {
         <span className="topbar-divider" />
         <span className="demo-pill">
           <span />
-          Demo workspace
+          {demoMode ? 'Demo workspace' : 'Live workspace'}
         </span>
+        {demoMode && (
+          <button className="button button-secondary button-sm" onClick={exitDemo}>
+            Exit demo mode
+          </button>
+        )}
+        {!demoMode && !offline && (
+          <button className="button button-secondary button-sm" onClick={loadDemoData}>
+            Load demo data
+          </button>
+        )}
         <Link className="icon-button header-help" aria-label="Help and documentation" to="/help">
           <CircleHelp size={18} />
         </Link>

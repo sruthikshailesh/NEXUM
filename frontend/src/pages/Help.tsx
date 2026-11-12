@@ -24,7 +24,7 @@ const handoverSections = [
 ]
 
 export default function Help() {
-  const { setNewProjectOpen } = useApp()
+  const { setNewProjectOpen, demoMode } = useApp()
 
   return (
     <>
@@ -36,8 +36,9 @@ export default function Help() {
       <div className="info-box">
         <Info size={18} aria-hidden="true" />
         <p>
-          You are exploring a Phase 1 frontend demo with fictional sample data. Changes stay in this
-          session; no AI, backend, database, authentication, or live integrations are connected.
+          {demoMode
+            ? 'You are exploring fictional ShopSphere demo data. Changes stay in this session; no AI or backend is used for demo records.'
+            : 'You are connected to the NEXUM backend. Upload sources to a project, run analysis, review evidence, then generate a handover. Your data is stored in the local SQLite database.'}
         </p>
       </div>
 
@@ -144,9 +145,9 @@ export default function Help() {
           </div>
         </div>
         <p>
-          Open Handover Reports to explore a sample report or prepare one for a project. Reports are
-          assembled from local project data and predefined sample content. Adding a file does not
-          analyze its contents or extract new decisions.
+          {demoMode
+            ? 'Open Handover Reports to explore a sample report. Reports are assembled from demo records and predefined content; adding a file does not analyze it.'
+            : 'Open Handover Reports and generate one for a project. Reports are assembled from stored claims whose quotes were verified against your uploaded sources.'}
         </p>
         <ol className="help-steps">
           {handoverSections.map((title) => (
@@ -158,7 +159,7 @@ export default function Help() {
         <p className="muted">
           Check each section against its references, distinguish incomplete work from completed
           work, and keep unresolved questions visible. Marking a report as reviewed records your
-          review for this session; it does not verify its claims.
+          human review; it does not verify its claims.
         </p>
         <Link className="button button-secondary button-sm" to="/handovers">
           Explore handover reports
@@ -175,17 +176,16 @@ export default function Help() {
           <details className="faq-item">
             <summary>Will my changes be here when I come back?</summary>
             <p>
-              No. Projects you create, added sources, profile preferences, conflict resolutions, and
-              report reviews are held only in memory while this page is open. Navigating inside the
-              app keeps them, but reloading or closing the page resets the workspace to its sample
-              data. There is no account, persistent database, or server save.
+              {demoMode
+                ? 'No. Demo records and profile preferences are held only in memory while this page is open. Reloading or closing the page resets the demo workspace. There is no account or server save for demo data.'
+                : 'Yes for projects, sources, claims, conflicts and reports: they are stored by the NEXUM backend. Profile and appearance preferences are display-only and reset with this browser session. There is no authentication yet.'}
             </p>
           </details>
           <details className="faq-item">
             <summary>Which files can I add, and what are the limits?</summary>
             <p>
-              Use PDF (.pdf), plain text (.txt), JSON (.json), or Markdown (.md) files. Each file
-              can be up to 5 MB, with up to 10 files per batch. In the{' '}
+              Use PDF (.pdf), DOCX (.docx), plain text (.txt), or Markdown (.md) files. Each file
+              can be up to 10 MB, with up to 10 files per batch. In the{' '}
               <Link className="text-link" to="/knowledge">
                 knowledge base
               </Link>
@@ -193,26 +193,26 @@ export default function Help() {
               confirm.
             </p>
             <p>
-              Text previews are limited to 60,000 characters. Markdown is listed as Meeting notes.
-              PDF content extraction is unavailable: only the file name, size, and project
-              association are retained. Nothing is uploaded, indexed, or analyzed by AI.
+              {demoMode
+                ? 'In demo mode, text previews are limited to 60,000 characters and PDF/DOCX content is not extracted. Nothing is uploaded or analyzed.'
+                : 'The backend extracts text, keeps PDF page numbers, and splits text into overlapping chunks. Scanned, empty, corrupt and password-protected files are rejected with a clear message. AI runs only when you press Analyze sources.'}
             </p>
           </details>
           <details className="faq-item">
             <summary>Is AI connected? Will adding files find decisions or conflicts?</summary>
             <p>
-              No. Phase 1 has no AI connection or automated processing. Existing summaries,
-              decisions, and conflicts are fictional examples. Added files appear as Local only
-              sources; they do not trigger extraction, conflict detection, or automatic resolutions.
-              Demo indexed labels refer to sample records, not a running indexing service.
+              {demoMode
+                ? 'Not for demo records. They are fictional examples and no AI runs on them.'
+                : 'Yes, when you press Analyze sources. The backend sends small per-source batches to Groq, validates the JSON, and keeps a claim only if its quote exists in a stored chunk. Conflicts are shown for human review and are never auto-resolved.'}
             </p>
           </details>
           <details className="faq-item">
             <summary>What does preparing a sample report do?</summary>
             <p>
-              It creates a nine-section sample handover using the current local project records and
-              predefined content. It does not send your data anywhere or use AI to interpret
-              uploaded files. Explore{' '}
+              {demoMode
+                ? 'It creates a nine-section sample handover from demo records and predefined content. No AI is used and nothing is sent anywhere.'
+                : 'It assembles a nine-section handover from stored verified claims and sources. It does not invent missing information; gaps stay explicit.'}{' '}
+              Explore{' '}
               <Link className="text-link" to="/handovers">
                 Handover Reports
               </Link>
@@ -225,17 +225,17 @@ export default function Help() {
             <p>
               No. It moves the conflict to Under Review. To resolve it, read both sources, choose
               Resolve Conflict, and enter a rationale of at least 15 characters before saving. The
-              rationale should explain what you accepted, why, and what still needs follow-up. Both
-              actions last only for this session.
+              rationale should explain what you accepted, why, and what still needs follow-up.
+              {demoMode ? ' Both actions last only for this session.' : ' Both actions are saved to the backend.'}
             </p>
           </details>
           <details className="faq-item">
             <summary>Can I connect GitHub or import pull requests and tasks?</summary>
             <p>
-              Not in Phase 1. GitHub repository records, pull requests, and task records appear as
-              sample source types only. Live GitHub connections and importing those source types are
-              future capabilities, not active integrations. No repository is fetched, synchronized,
-              or authenticated by this demo.
+              Not yet. GitHub repository records, pull requests, and task records appear as sample
+              source types only. Live GitHub connections and importing those source types are future
+              capabilities, not active integrations. No repository is fetched, synchronized, or
+              authenticated.
             </p>
           </details>
           <details className="faq-item">

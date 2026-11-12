@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext'
 import ProjectCard from '../components/ProjectCard'
 import { DemoNote, EmptyState, PageHeader, SearchInput, Select } from '../components/UI'
 export default function Projects() {
-  const { projects, preferences, setNewProjectOpen } = useApp()
+  const { projects, preferences, setNewProjectOpen, demoMode } = useApp()
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('All statuses')
   const [view, setView] = useState(preferences.defaultView)
@@ -103,7 +103,9 @@ export default function Projects() {
         />
       )}
       <DemoNote>
-        Projects are stored in frontend state. Refreshing restores the demo workspace.
+        {demoMode
+          ? 'Projects are stored in the demo session. Use Exit demo mode to return to the live backend.'
+          : 'Projects are stored by the NEXUM backend and persist across reloads.'}
       </DemoNote>
     </>
   )
